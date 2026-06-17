@@ -153,6 +153,35 @@ body[data-wall="ocean"]{background:radial-gradient(900px 700px at 20% 90%,#0b556
 .viewer__bar .btn{padding:.35rem .7rem}
 .viewer__name{color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* App: Off-Grid (Victron VRM) */
+.vrm{display:flex;flex-direction:column;height:100%;padding:.8rem;gap:.7rem;overflow:auto}
+.vrm__bar{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.vrm__site{font-weight:700;font-size:1rem}
+.vrm__badge{font-size:.64rem;letter-spacing:.1em;font-weight:700;padding:.2rem .5rem;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.vrm__badge--demo{color:#e2b34a;border-color:rgba(226,179,74,.5);background:rgba(226,179,74,.12)}
+.vrm__badge--live{color:#3fae6b;border-color:rgba(63,174,107,.5);background:rgba(63,174,107,.12)}
+.vrm__grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+.vrm__card{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:.7rem .8rem;display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.vrm__card--wide{grid-column:1 / -1}
+.vrm__ch{display:flex;align-items:center;justify-content:space-between;gap:.4rem;font-size:.78rem;color:var(--muted)}
+.vrm__sub,.vrm__pct{color:var(--text);font-size:.74rem;font-variant-numeric:tabular-nums}
+.vrm__tag{font-size:.66rem;padding:.12rem .45rem;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.vrm__tag--g{color:#3fae6b;border-color:rgba(63,174,107,.5)}
+.vrm__big{font-size:2.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.vrm__big i{font-size:1rem;font-weight:600;color:var(--muted);font-style:normal;margin-left:.15rem}
+.vrm__mid{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums}
+.vrm__mid--sm{font-size:1.05rem;color:var(--text)}
+.vrm__x{margin:0;color:var(--muted);font-size:.72rem}
+.vrm__kv{display:flex;flex-wrap:wrap;gap:.3rem .9rem}
+.vrm__kv div{display:flex;flex-direction:column}
+.vrm__kv span{font-size:.68rem;color:var(--muted)}
+.vrm__kv b{font-size:.9rem;font-variant-numeric:tabular-nums}
+.vrm__track{height:7px;border-radius:99px;background:rgba(255,255,255,.1);overflow:hidden}
+.vrm__fill{display:block;height:100%;border-radius:99px;background:var(--accent);transition:width .5s}
+.vrm__fill--g{background:linear-gradient(90deg,#3fae6b,#37c2c2)}
+.vrm__fill--b{background:linear-gradient(90deg,#4a9be2,#37c2c2)}
+.vrm__note{margin:.2rem 0 0;color:var(--muted);font-size:.72rem;line-height:1.45}
+
 /* ---------- TASKBAR ---------- */
 .taskbar{margin-top:auto;display:flex;align-items:center;gap:.6rem;height:var(--taskbar);padding:0 .7rem;background:rgba(10,14,26,.7);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:50}
 .taskbar__start{display:flex;align-items:center;gap:.4rem;font:inherit;font-weight:600;color:var(--text);cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.06);padding:.45rem .8rem;border-radius:10px}

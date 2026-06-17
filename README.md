@@ -15,7 +15,8 @@ concept end-to-end and is the foundation for a real product.
 - **Sign up / sign in** with email + password (passwords are hashed with scrypt; never stored in plain text).
 - **Per-user profile**, saved server-side: your display name, accent colour, wallpaper, notes, tasks, chat history, and which windows you had open (position/size/maximised) — all restored next time you log in.
 - **Windowed desktop**: open/close/minimise/**maximise**, drag, **resize**, **edge-snap** (half-screen / maximise), focus ring, taskbar, Start menu.
-- **Apps**: AI Assistant, Notes, Tasks, Calculator (safe evaluator, no `eval`), Image Viewer, Settings, Get Help, About.
+- **Apps**: AI Assistant, Notes, Tasks, Calculator (safe evaluator, no `eval`), Image Viewer, **Off-Grid** (live Victron VRM dashboard), Settings, Get Help, About.
+- **Off-grid power monitoring** — a built-in Victron **VRM** dashboard (battery charge, solar, DC/AC loads, inverter, tanks). Live when `VRM_API_TOKEN` + `VRM_SITE_ID` are set; honest demo data otherwise. Ask the assistant to "open off-grid".
 - **Command palette** (`Ctrl`/`⌘`+`K`) and keyboard shortcuts.
 - **Agentic AI Assistant** wired to Claude (model `claude-opus-4-8`) via the official Anthropic SDK — it can actually *operate* the desktop (notes, tasks, accent, wallpaper, open/close apps) via tool-use, then shows what it did as action chips + toasts. Runs in a clearly-labelled **demo mode** (same tools via a command matcher) until you add an API key.
 - **Lead capture → HubSpot** from a built-in contact form (see below).

@@ -26,6 +26,7 @@
     calc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 11v6"/></svg>',
     viewer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 16-5-5L5 21"/></svg>',
     about: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/></svg>',
+    victron: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="7.5" r="2.6"/><path d="M8 2.4v1.3M8 11.3v1.3M2.4 7.5h1.3M12.3 7.5h1.3M4.4 3.9l.9.9M10.7 10.2l.9.9M11.6 3.9l-.9.9M5.3 10.2l-.9.9"/><rect x="12.5" y="13" width="9" height="7.5" rx="1.6"/><path d="M21.5 15.5v2.5M15 16.2l2 2 3-3.4"/></svg>',
   };
 
   const APPS = {
@@ -34,6 +35,7 @@
     tasks:     { title: "Tasks",        w: 340, h: 430, build: buildTasks },
     calc:      { title: "Calculator",   w: 260, h: 360, build: buildCalc },
     viewer:    { title: "Image Viewer", w: 420, h: 380, build: buildViewer },
+    victron:   { title: "Off-Grid",     w: 460, h: 540, build: buildVictron },
     settings:  { title: "Settings",     w: 390, h: 430, build: buildSettings },
     help:      { title: "Get Help",     w: 380, h: 440, build: buildHelp },
     about:     { title: "About",        w: 360, h: 320, build: buildAbout },
@@ -503,6 +505,91 @@
       '<p>Everything you change is saved to your account. The assistant is powered by Claude; without a server API key it runs in a clearly-labelled demo mode that still runs simple commands.</p>' +
       '<p style="margin-top:.8rem;color:var(--muted)">Tip: press <strong>Ctrl/⌘ + K</strong> for the command palette.</p>' +
       '<p style="margin-top:.6rem;color:var(--accent)">Built by 365 Techies — Bournemouth & Dorset.</p></div>';
+  }
+
+  // App: Off-Grid (Victron VRM) — monitors a Victron system. Live via /api/victron
+  // when a VRM token+site are configured on the server; otherwise honest demo data.
+  function buildVictron(body, win) {
+    body.innerHTML =
+      '<div class="vrm">' +
+      '<div class="vrm__bar"><span class="vrm__site">Off-Grid</span><span class="vrm__badge">…</span></div>' +
+      '<div class="vrm__grid"></div>' +
+      '<p class="vrm__note"></p></div>';
+    const siteEl = body.querySelector(".vrm__site"), badgeEl = body.querySelector(".vrm__badge");
+    const grid = body.querySelector(".vrm__grid"), noteEl = body.querySelector(".vrm__note");
+    let pollTimer = null, animTimer = null;
+
+    function esc(s) { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
+    function bar(pct, cls) { pct = Math.max(0, Math.min(100, Number(pct) || 0)); return '<div class="vrm__track"><span class="vrm__fill ' + (cls || "") + '" style="width:' + pct + '%"></span></div>'; }
+    function pickStr(fmt, num, unit) { return fmt != null ? fmt : (num != null ? num + " " + unit : "–"); }
+
+    function render(d) {
+      d = d || {};
+      const b = d.battery || {}, pv = d.pv || {}, dc = d.dc || {}, ac = d.acLoads || {}, inv = d.inverter || {}, gen = d.generator || {};
+      siteEl.textContent = d.siteName || "Off-Grid System";
+      const soc = (b.socPct != null) ? Number(b.socPct) : null;
+      const cards = [];
+      cards.push(
+        '<div class="vrm__card vrm__card--wide"><div class="vrm__ch"><span>Battery</span>' +
+        '<span class="vrm__tag ' + (/charg/i.test(b.state || "") ? "vrm__tag--g" : "") + '">' + esc(b.state || "—") + '</span></div>' +
+        '<div class="vrm__big">' + (soc != null ? soc.toFixed(1) : "–") + '<i>%</i></div>' + bar(soc, "vrm__fill--g") +
+        '<div class="vrm__kv">' +
+        '<div><span>Voltage</span><b>' + esc(pickStr(b.voltageFmt, b.voltageV, "V")) + '</b></div>' +
+        '<div><span>Current</span><b>' + esc(pickStr(b.currentFmt, b.currentA, "A")) + '</b></div>' +
+        '<div><span>Time to go</span><b>' + esc(pickStr(b.timeToGoFmt, b.timeToGoH, "h")) + '</b></div>' +
+        '</div></div>');
+      cards.push('<div class="vrm__card"><div class="vrm__ch"><span>Solar</span>' + (pv.name ? '<span class="vrm__sub">' + esc(pv.name) + '</span>' : '') + '</div>' +
+        '<div class="vrm__mid">' + esc(pickStr(pv.powerFmt, pv.powerW, "W")) + '</div>' + (pv.extra ? '<p class="vrm__x">' + esc(pv.extra) + '</p>' : '') + '</div>');
+      cards.push('<div class="vrm__card"><div class="vrm__ch"><span>DC Power</span></div><div class="vrm__mid">' + esc(pickStr(dc.powerFmt, dc.powerW, "W")) + '</div></div>');
+      const acTxt = (ac.powerFmt != null) ? ac.powerFmt : (ac.powerW ? ac.powerW + " W" : "Off");
+      cards.push('<div class="vrm__card"><div class="vrm__ch"><span>AC Loads</span></div><div class="vrm__mid">' + esc(acTxt) + '</div></div>');
+      cards.push('<div class="vrm__card"><div class="vrm__ch"><span>Inverter</span></div><div class="vrm__mid vrm__mid--sm">' + esc(inv.state || "—") + '</div></div>');
+      cards.push('<div class="vrm__card"><div class="vrm__ch"><span>Generator</span></div><div class="vrm__mid vrm__mid--sm">' + esc(gen.label || "Off") + '</div></div>');
+      (d.tanks || []).slice(0, 4).forEach(function (t) {
+        cards.push('<div class="vrm__card"><div class="vrm__ch"><span>' + esc(t.name) + '</span><b class="vrm__pct">' + (t.pct != null ? t.pct + "%" : "–") + '</b></div>' + bar(t.pct, "vrm__fill--b") + '</div>');
+      });
+      if (d.weather && d.weather.tempC != null) {
+        cards.push('<div class="vrm__card"><div class="vrm__ch"><span>Weather</span></div><div class="vrm__mid vrm__mid--sm">' + esc(d.weather.tempC + "°C") + '</div><p class="vrm__x">' + esc(d.weather.condition || "") + '</p></div>');
+      }
+      grid.innerHTML = cards.join("");
+    }
+
+    function demoData() {
+      const t = Date.now() / 1000;
+      const dcW = Math.round(215 + Math.sin(t / 7) * 18 + Math.sin(t / 2.3) * 4);
+      const amps = -(dcW / 13.22);
+      const volt = 13.22 + Math.sin(t / 11) * 0.05;
+      const soc = 87.3 - ((t % 3600) / 3600) * 0.3;
+      return {
+        siteName: "365 Crafter",
+        battery: { socPct: Math.round(soc * 10) / 10, state: "Discharging", voltageFmt: volt.toFixed(2) + " V", currentFmt: amps.toFixed(1) + " A", timeToGoFmt: "42h 8m", currentA: amps },
+        dc: { powerFmt: dcW + " W", powerW: dcW },
+        pv: { powerFmt: "0 W", powerW: 0, name: "MPPT-277", extra: "0.03 V · 0 A" },
+        acLoads: { powerFmt: "Off", powerW: 0 },
+        inverter: { state: "Off" }, generator: { label: "Off" },
+        tanks: [{ name: "Fresh water", pct: 33 }, { name: "Waste water", pct: 0 }],
+        weather: { tempC: 19, condition: "Cloudy" },
+      };
+    }
+    function startDemo() {
+      badgeEl.textContent = "DEMO DATA"; badgeEl.className = "vrm__badge vrm__badge--demo";
+      noteEl.textContent = "Illustrative demo data. Connect Victron VRM (an access token + site id on the server) to show your real system live.";
+      render(demoData());
+      animTimer = setInterval(function () { render(demoData()); }, 2500);
+    }
+    function startLive(data) {
+      badgeEl.textContent = "LIVE · VRM"; badgeEl.className = "vrm__badge vrm__badge--live";
+      noteEl.textContent = "Live from your Victron VRM — refreshing every 10s.";
+      render(data);
+      pollTimer = setInterval(function () {
+        api("GET", "/api/victron").then(function (r) { if (r && !r.demo && r.data) render(r.data); }).catch(function () {});
+      }, 10000);
+    }
+    api("GET", "/api/victron").then(function (r) {
+      if (r && !r.demo && r.data) startLive(r.data); else startDemo();
+    }).catch(function () { startDemo(); });
+
+    win._onClose = function () { if (pollTimer) clearInterval(pollTimer); if (animTimer) clearInterval(animTimer); };
   }
 
   // ================= COMMAND PALETTE + SHORTCUTS =================
