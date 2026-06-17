@@ -175,6 +175,7 @@
   function closeApp(id) {
     const w = openWins[id]; if (!w) return;
     if (w.el._onClose) try { w.el._onClose(); } catch (_) {}
+    (w.el._cleanups || []).forEach((fn) => { try { fn(); } catch (_) {} }); // detach window-level drag/resize listeners
     const cur = me.state.windows[id] || {};
     me.state.windows[id] = { open: false, x: parseInt(w.el.style.left), y: parseInt(w.el.style.top), w: parseInt(w.el.style.width), h: parseInt(w.el.style.height), max: !!cur.max, prevRect: cur.prevRect };
     w.el.remove(); w.taskBtn.remove(); delete openWins[id];
@@ -209,6 +210,7 @@
   function toggleMax(id) { const st = me.state.windows[id]; applyMax(id, !st.max); saveState(); }
 
   let snapPreview = null;
+  function regCleanup(win, fn) { (win._cleanups = win._cleanups || []).push(fn); }
   function makeDraggable(win, handle, id) {
     let sx, sy, ox, oy, dragging = false, snapTo = null;
     handle.addEventListener("mousedown", (e) => {
@@ -217,7 +219,7 @@
       dragging = true; sx = e.clientX; sy = e.clientY; ox = parseInt(win.style.left); oy = parseInt(win.style.top);
       win.classList.add("is-dragging"); document.body.style.userSelect = "none";
     });
-    window.addEventListener("mousemove", (e) => {
+    const onMove = (e) => {
       if (!dragging) return;
       let nx = Math.max(0, Math.min(window.innerWidth - 80, ox + (e.clientX - sx)));
       let ny = Math.max(TOPBAR, Math.min(window.innerHeight - 80, oy + (e.clientY - sy)));
@@ -228,8 +230,8 @@
       else if (e.clientX >= window.innerWidth - 8) { snapTo = "right"; prev = { x: window.innerWidth / 2, y: TOPBAR, w: window.innerWidth / 2, h: window.innerHeight - TOPBAR - TASKBAR }; }
       else if (e.clientY <= TOPBAR + 2) { snapTo = "max"; prev = { x: 0, y: TOPBAR, w: window.innerWidth, h: window.innerHeight - TOPBAR - TASKBAR }; }
       showSnap(prev);
-    });
-    window.addEventListener("mouseup", () => {
+    };
+    const onUp = () => {
       if (!dragging) return;
       dragging = false; win.classList.remove("is-dragging"); document.body.style.userSelect = ""; showSnap(null);
       if (snapTo === "max") { applyMax(id, true); }
@@ -239,7 +241,10 @@
         win.style.width = Math.round(window.innerWidth / 2) + "px"; win.style.height = (window.innerHeight - TOPBAR - TASKBAR) + "px";
       }
       snapTo = null; persistRect(id, win); saveState();
-    });
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    regCleanup(win, () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); });
   }
   function showSnap(rect) {
     if (!rect) { if (snapPreview) { snapPreview.remove(); snapPreview = null; } return; }
@@ -253,13 +258,16 @@
       resizing = true; sx = e.clientX; sy = e.clientY; ow = parseInt(win.style.width); oh = parseInt(win.style.height);
       win.classList.add("is-dragging"); document.body.style.userSelect = "none";
     });
-    window.addEventListener("mousemove", (e) => {
+    const onMove = (e) => {
       if (!resizing) return;
       const left = parseInt(win.style.left), top = parseInt(win.style.top);
       win.style.width = Math.max(240, Math.min(ow + (e.clientX - sx), window.innerWidth - left)) + "px";
       win.style.height = Math.max(160, Math.min(oh + (e.clientY - sy), window.innerHeight - top)) + "px";
-    });
-    window.addEventListener("mouseup", () => { if (!resizing) return; resizing = false; win.classList.remove("is-dragging"); document.body.style.userSelect = ""; persistRect(id, win); saveState(); });
+    };
+    const onUp = () => { if (!resizing) return; resizing = false; win.classList.remove("is-dragging"); document.body.style.userSelect = ""; persistRect(id, win); saveState(); };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    regCleanup(win, () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); });
   }
   function persistRect(id, win) {
     const s = me.state.windows[id] || {};
@@ -517,7 +525,7 @@
       '<p class="vrm__note"></p></div>';
     const siteEl = body.querySelector(".vrm__site"), badgeEl = body.querySelector(".vrm__badge");
     const grid = body.querySelector(".vrm__grid"), noteEl = body.querySelector(".vrm__note");
-    let pollTimer = null, animTimer = null;
+    let pollTimer = null, animTimer = null, closed = false;
 
     function esc(s) { const d = document.createElement("div"); d.textContent = String(s == null ? "" : s); return d.innerHTML; }
     function bar(pct, cls) { pct = Math.max(0, Math.min(100, Number(pct) || 0)); return '<div class="vrm__track"><span class="vrm__fill ' + (cls || "") + '" style="width:' + pct + '%"></span></div>'; }
@@ -582,14 +590,15 @@
       noteEl.textContent = "Live from your Victron VRM — refreshing every 10s.";
       render(data);
       pollTimer = setInterval(function () {
-        api("GET", "/api/victron").then(function (r) { if (r && !r.demo && r.data) render(r.data); }).catch(function () {});
+        api("GET", "/api/victron").then(function (r) { if (closed) { clearInterval(pollTimer); return; } if (r && !r.demo && r.data) render(r.data); }).catch(function () {});
       }, 10000);
     }
     api("GET", "/api/victron").then(function (r) {
+      if (closed) return;
       if (r && !r.demo && r.data) startLive(r.data); else startDemo();
-    }).catch(function () { startDemo(); });
+    }).catch(function () { if (closed) return; startDemo(); });
 
-    win._onClose = function () { if (pollTimer) clearInterval(pollTimer); if (animTimer) clearInterval(animTimer); };
+    win._onClose = function () { closed = true; if (pollTimer) clearInterval(pollTimer); if (animTimer) clearInterval(animTimer); };
   }
 
   // ================= COMMAND PALETTE + SHORTCUTS =================

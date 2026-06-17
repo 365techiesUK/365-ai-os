@@ -2,8 +2,8 @@
    Strategy: NEVER cache /api/* (always live). HTML navigations are network-first
    (so updates show), falling back to the cached shell when offline. Other static
    GETs are cache-first with background refresh. Bump CACHE to invalidate. */
-const CACHE = "aios-v1";
-const SHELL = ["/", "/index.html", "/os.css", "/os.js", "/manifest.webmanifest", "/icon.svg"];
+const CACHE = "aios-v2";
+const SHELL = ["/", "/index.html", "/contact.html", "/os.css", "/os.js", "/manifest.webmanifest", "/icon.svg", "/icon-192.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
