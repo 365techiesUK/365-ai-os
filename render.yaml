@@ -1,0 +1,25 @@
+# Render.com blueprint — deploy with one click from a connected repo.
+# NOTE: the free plan has an ephemeral filesystem, so data.json (users + state)
+# resets on each deploy/restart. For persistence, attach a paid disk or move to a
+# database (see README). Secrets marked sync:false are entered in the Render UI.
+services:
+  - type: web
+    name: 365-ai-os
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: HUBSPOT_PORTAL_ID
+        sync: false
+      - key: HUBSPOT_FORM_GUID
+        sync: false
+      - key: HUBSPOT_FORMS_HOST
+        value: api-eu1.hsforms.com
+      - key: LEAD_ALLOWED_ORIGINS
+        sync: false

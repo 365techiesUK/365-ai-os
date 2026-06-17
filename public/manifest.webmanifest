@@ -1,0 +1,14 @@
+{
+  "name": "365 Techies AI OS",
+  "short_name": "365 AI OS",
+  "description": "A browser desktop with a built-in AI assistant, by 365 Techies.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1020",
+  "theme_color": "#0b1020",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

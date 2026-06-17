@@ -1,0 +1,19 @@
+{
+  "name": "365-ai-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "365 Techies AI OS — a browser desktop with sign-up/login, per-user profiles, and an AI assistant. Prototype.",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
+    "express": "^5.2.1"
+  }
+}
